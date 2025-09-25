@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h2>Welcome to FinTrack</h2>
+    <p>The current date and time is: {% now "DATETIME_FORMAT" %}</p>
+    <p>This is your main content area.</p>
+    {% if user.is_authenticated %}
+    <p>Welcome back, {{ user.username }}!</p>
+    {% if user.is_staff %}
+    <p>You have staff privileges.</p>
+    <p>{{ premium_content }}</p>
+    {% else %}
+    <p>You are a regular user.</p>
+    {% endif %}
+    {% else %}
+    <p>Please log in to see subscriber content.</p>
+    {% endif %}
+    <p>There are {{ inventory_list|length }} items of inventory.
+    <ul>
+        {% for item in inventory_list %}
+        <li>{{ item }}</li>
+        {% endfor %}
+    </ul>
+    <p>{{ greeting| title }}</p>
+    {% comment %}Add more content here!{% endcomment %}
+
+
+{% endblock %}
