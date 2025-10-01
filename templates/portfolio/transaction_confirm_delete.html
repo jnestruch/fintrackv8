@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Delete transaction?</h1>
+<p>{{ txn.timestamp }} — {{ txn.txn_type }} — {{ txn.quantity }} — {{ txn.amount }}</p>
+<form method="post">{% csrf_token %}
+  <button class="btn btn-danger">Delete</button>
+  <a class="btn btn-secondary" href="{% url 'portfolio:transaction_list' asset_pk=asset.pk %}">Cancel</a>
+</form>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Delete asset?</h1>
+<p>{{ object.name }} ({{ object.kind }})</p>
+<form method="post">{% csrf_token %}
+  <button class="btn btn-danger">Delete</button>
+  <a class="btn btn-secondary" href="{% url 'portfolio:asset_detail' pk=object.pk %}">Cancel</a>
+</form>
+{% endblock %}

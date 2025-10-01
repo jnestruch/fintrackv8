@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{% if creating %}New{% else %}Edit{% endif %} {{ category|title|lower|capfirst }}</h1>
+<form method="post">{% csrf_token %}
+  <fieldset class="mb-3">
+    <legend>Base</legend>
+    {{ asset_form.as_p }}
+  </fieldset>
+
+  <fieldset class="mb-3">
+    <legend>Details</legend>
+    {{ detail_form.as_p }}
+  </fieldset>
+
+  <button type="submit">Save</button>
+  <a href="{% url 'portfolio:asset_list' %}">Cancel</a>
+</form>
+{% endblock %}
+

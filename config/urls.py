@@ -22,4 +22,6 @@ urlpatterns = [
     path('', include('core.urls')),
     path('users/', include('django.contrib.auth.urls')),
     path('users/', include('core.urls')),
+    path("catalog/", include("catalog.urls")),     # autocomplete
+    path("portfolio/", include("portfolio.urls")), # user pages
 ]

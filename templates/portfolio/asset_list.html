@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Assets</h1>
+<p><a href="{% url 'portfolio:asset_create_category' %}">New asset</a></p>
+
+<form method="get" class="mb-3">
+  <label>Filter by category:
+    <select name="category" onchange="this.form.submit()">
+      <option value="">All</option>
+      {% for code,label in asset.assetcategory.choices %}
+      <option value="{{ code }}" {% if request.GET.category == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+</form>
+
+<table>
+  <thead><tr><th>Name</th><th>Category</th><th>Currency</th><th></th></tr></thead>
+  <tbody>
+    {% for a in assets %}
+    <tr>
+      <td><a href="{% url 'portfolio:asset_detail' pk=a.pk %}">{{ a.name }}</a></td>
+      <td>{{ a.get_category_display }}</td>
+      <td>{{ a.currency }}</td>
+      <td><a href="{% url 'portfolio:asset_edit' pk=a.pk %}">Edit</a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">No assets</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

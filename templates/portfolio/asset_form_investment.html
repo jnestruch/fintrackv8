@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{% if creating %}New{% else %}Edit{% endif %} Investment</h1>
+<form method="post">{% csrf_token %}
+  <fieldset class="mb-3">
+    <legend>Base</legend>
+    {{ asset_form.as_p }}
+  </fieldset>
+
+  <fieldset class="mb-3">
+    <legend>Investment details</legend>
+    {{ inv_form.mode }}
+    <div id="equity-block" class="mb-2">
+      <label>Listing (ticker @ exchange)</label>
+      {{ inv_form.listing }}
+    </div>
+    <div id="crypto-block" class="mb-2" style="display:none">
+      <label>Token (symbol @ network)</label>
+      {{ inv_form.token }}
+    </div>
+    {{ inv_form.memo.label_tag }} {{ inv_form.memo }}
+  </fieldset>
+
+  <button type="submit">Save</button>
+</form>
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+(function(){
+  function initSelect2($el){
+    var url=$el.data('url'); var ph=$el.data('placeholder')||'Search…';
+    $el.select2({placeholder:ph, allowClear:true, minimumInputLength:1,
+      ajax:{url:url, dataType:'json', delay:250,
+        data:params=>({q:params.term||'', page:params.page||1}),
+        processResults:(data)=>data, cache:true}, width:'100%'});
+    var t=$el.attr('data-current-text'); if(t && $el.val()){ var opt=new Option(t,$el.val(),true,true); $el.append(opt).trigger('change'); }
+  }
+  function sync(){
+    var m=$('input[name="mode"]:checked').val()||'equity';
+    if(m==='equity'){ $('#equity-block').show(); $('#crypto-block').hide(); $('.inv-crypto').val(null).trigger('change'); }
+    else { $('#equity-block').hide(); $('#crypto-block').show(); $('.inv-eq').val(null).trigger('change'); }
+  }
+  $(function(){ $('.select2-ajax').each(function(){ initSelect2($(this)); }); $('input[name="mode"]').on('change',sync); sync(); });
+})();
+</script>
+{% endblock %}

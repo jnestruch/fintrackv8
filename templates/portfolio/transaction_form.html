@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Transaction — {{ asset.name }}</h1>
+<form method="post">{% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn btn-primary">Save</button>
+  <a class="btn btn-secondary" href="{% url 'portfolio:transaction_list' asset_pk=asset.pk %}">Cancel</a>
+</form>
+{% endblock %}

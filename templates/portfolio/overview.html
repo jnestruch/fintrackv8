@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block content %}
+<h1>Portfolio Overview</h1>
+
+{% if accounts %}
+  {% for acc in accounts %}
+    <h2 style="margin-top:1.25rem">{{ acc.name }}</h2>
+
+    <div style="overflow-x:auto">
+      <table border="1" cellpadding="6" cellspacing="0" style="min-width:820px; border-collapse:collapse">
+        <thead>
+          <tr style="background:#f6f6f6">
+            <th align="left">Asset</th>
+            <th align="left">Category</th>
+            <th align="left">Type (taxonomy)</th>
+            <th align="left">Currency</th>
+            <th align="right">Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in acc.assets %}
+            <tr>
+              <td><a href="{% url 'portfolio:asset_detail' pk=a.pk %}">{{ a.name }}</a></td>
+              <td>{{ a.get_category_display }}</td>
+              <td>{{ a.type.full_path|default:a.type.name }}</td>
+              <td>{{ a.currency }}</td>
+              <td align="right">{{ a.balance|floatformat:2|intcomma }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5">No assets in this account.</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          {% for ccy, total in acc.totals.items %}
+            <tr style="background:#fafafa">
+              <td colspan="4" align="right"><strong>Total ({{ ccy }})</strong></td>
+              <td align="right"><strong>{{ total|floatformat:2|intcomma }}</strong></td>
+            </tr>
+          {% endfor %}
+        </tfoot>
+      </table>
+    </div>
+  {% endfor %}
+
+  <h2 style="margin-top:1.5rem">Grand totals</h2>
+  <table border="1" cellpadding="6" cellspacing="0" style="min-width:420px; border-collapse:collapse">
+    <thead>
+      <tr style="background:#f6f6f6"><th align="left">Currency</th><th align="right">Total</th></tr>
+    </thead>
+    <tbody>
+      {% for ccy, total in grand_totals.items %}
+        <tr>
+          <td>{{ ccy }}</td>
+          <td align="right">{{ total|floatformat:2|intcomma }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="2">No balances.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p style="color:#666; font-size:0.9rem; margin-top:0.75rem">
+    Note: balances are computed as the sum of each asset’s transactions and shown in the asset’s currency.
+    Cross-currency totals are displayed per currency (no FX conversion).
+  </p>
+{% else %}
+  <p>No assets yet. <a href="{% url 'portfolio:asset_create_category' %}">Add your first asset</a>.</p>
+{% endif %}
+{% endblock %}

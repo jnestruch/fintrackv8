@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ asset.name }}</h1>
+<p><b>Category:</b> {{ asset.get_category_display }}</p>
+<p><b>Currency:</b> {{ asset.currency }}</p>
+
+{% if asset.category == "INVESTMENT" and asset.investment %}
+  {% with inv=asset.investment %}
+    <h3>Investment</h3>
+    <p><b>Instrument:</b> {{ inv.instrument.name }} ({{ inv.instrument.kind }})</p>
+    {% if inv.listing %}
+      <p><b>Listing:</b> {{ inv.listing.ticker }} @ {{ inv.listing.exchange.mic }}</p>
+    {% endif %}
+    {% if inv.token %}
+      <p><b>Token:</b> {{ inv.token.symbol }} @ {{ inv.token.network.code }}</p>
+    {% endif %}
+    {% if inv.memo %}<p><b>Memo:</b> {{ inv.memo }}</p>{% endif %}
+  {% endwith %}
+{% elif asset.category == "CASH" and asset.cash %}
+  <h3>Cash</h3>
+  <p><b>Account ref:</b> {{ asset.cash.account_ref }}</p>
+{% elif asset.category == "REAL_ESTATE" and asset.realestate %}
+  <h3>Real estate</h3>
+  <p>{{ asset.realestate.address }} ({{ asset.realestate.country }})</p>
+  {% if asset.realestate.area_sqm %}<p>{{ asset.realestate.area_sqm }} m²</p>{% endif %}
+{% elif asset.category == "PRECIOUS_METAL" and asset.metal %}
+  <h3>Precious metal</h3>
+  <p>{{ asset.metal.metal }} — {{ asset.metal.weight_grams }} g @ {{ asset.metal.purity }}</p>
+{% elif asset.category == "COLLECTIBLE" and asset.collectible %}
+  <h3>Collectible</h3>
+  <p>{{ asset.collectible.category }} {% if asset.collectible.year %}({{ asset.collectible.year }}){% endif %}</p>
+  {% if asset.collectible.certificate_id %}<p>Certificate: {{ asset.collectible.certificate_id }}</p>{% endif %}
+{% elif asset.category == "OTHER" and asset.other %}
+  <h3>Other</h3>
+  <p>{{ asset.other.description }}</p>
+{% endif %}
+
+<p class="mt-3">
+  <a href="{% url 'portfolio:asset_edit' pk=asset.pk %}">Edit</a> |
+  <a href="{% url 'portfolio:asset_list' %}">Back</a>
+</p>
+{% endblock %}
+
