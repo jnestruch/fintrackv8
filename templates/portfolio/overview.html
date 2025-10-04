@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load humanize %}
+{% load portfolio_extras %}
 
 {% block content %}
 <h1>Portfolio Overview</h1>
@@ -9,63 +10,108 @@
     <h2 style="margin-top:1.25rem">{{ acc.name }}</h2>
 
     <div style="overflow-x:auto">
-      <table border="1" cellpadding="6" cellspacing="0" style="min-width:820px; border-collapse:collapse">
+      <table border="1" cellpadding="6" cellspacing="0" style="min-width:980px; border-collapse:collapse">
         <thead>
           <tr style="background:#f6f6f6">
             <th align="left">Asset</th>
             <th align="left">Category</th>
             <th align="left">Type (taxonomy)</th>
-            <th align="left">Currency</th>
+            <th align="left">Balance (CCY)</th>
             <th align="right">Balance</th>
+            <th align="left">Market (CCY)</th>
+            <th align="right">Market value</th>
           </tr>
         </thead>
         <tbody>
-          {% for a in acc.assets %}
+          {% for row in acc.rows %}
             <tr>
-              <td><a href="{% url 'portfolio:asset_detail' pk=a.pk %}">{{ a.name }}</a></td>
-              <td>{{ a.get_category_display }}</td>
-              <td>{{ a.type.full_path|default:a.type.name }}</td>
-              <td>{{ a.currency }}</td>
-              <td align="right">{{ a.balance|floatformat:2|intcomma }}</td>
+              <td><a href="{% url 'portfolio:asset_detail' pk=row.asset.pk %}">{{ row.asset.name }}</a></td>
+              <td>{{ row.asset.get_category_display }}</td>
+              <td>{{ row.asset.type.full_path|default:row.asset.type.name }}</td>
+
+              <td>{{ row.balance_currency }}</td>
+              <td align="right">{{ row.balance|floatformat:2|intcomma }}</td>
+
+              <td>
+                {% if row.market_value %}{{ row.market_currency }}{% else %}<span style="color:#999">—</span>{% endif %}
+              </td>
+              <td align="right">
+                {% if row.market_value %}
+                  {{ row.market_value|floatformat:2|intcomma }}
+                {% else %}
+                  <span style="color:#999">—</span>
+                {% endif %}
+              </td>
             </tr>
           {% empty %}
-            <tr><td colspan="5">No assets in this account.</td></tr>
+            <tr><td colspan="7">No assets in this account.</td></tr>
           {% endfor %}
         </tbody>
         <tfoot>
-          {% for ccy, total in acc.totals.items %}
-            <tr style="background:#fafafa">
-              <td colspan="4" align="right"><strong>Total ({{ ccy }})</strong></td>
-              <td align="right"><strong>{{ total|floatformat:2|intcomma }}</strong></td>
-            </tr>
-          {% endfor %}
+          {% if acc.totals_balance %}
+            {% for ccy, total in acc.totals_balance.items %}
+              <tr style="background:#fafafa">
+                <td colspan="3" align="right"><strong>Balance total ({{ ccy }})</strong></td>
+                <td>{{ ccy }}</td>
+                <td align="right"><strong>{{ total|floatformat:2|intcomma }}</strong></td>
+                <td></td><td></td>
+              </tr>
+            {% endfor %}
+          {% endif %}
+          {% if acc.totals_market %}
+            {% for ccy, total in acc.totals_market.items %}
+              <tr style="background:#f3f8ff">
+                <td colspan="5" align="right"><strong>Market total ({{ ccy }})</strong></td>
+                <td>{{ ccy }}</td>
+                <td align="right"><strong>{{ total|floatformat:2|intcomma }}</strong></td>
+              </tr>
+            {% endfor %}
+          {% endif %}
         </tfoot>
       </table>
     </div>
   {% endfor %}
 
   <h2 style="margin-top:1.5rem">Grand totals</h2>
-  <table border="1" cellpadding="6" cellspacing="0" style="min-width:420px; border-collapse:collapse">
+  <table border="1" cellpadding="6" cellspacing="0" style="min-width:540px; border-collapse:collapse">
     <thead>
-      <tr style="background:#f6f6f6"><th align="left">Currency</th><th align="right">Total</th></tr>
+      <tr style="background:#f6f6f6">
+        <th align="left">Currency</th>
+        <th align="right">Total balance</th>
+        <th align="right">Total market</th>
+      </tr>
     </thead>
     <tbody>
-      {% for ccy, total in grand_totals.items %}
+      {% for ccy, bal_total in grand_bal_totals.items %}
         <tr>
           <td>{{ ccy }}</td>
-          <td align="right">{{ total|floatformat:2|intcomma }}</td>
+          <td align="right">{{ bal_total|floatformat:2|intcomma }}</td>
+          <td align="right">
+            {% with mv=grand_mv_totals|get_item:ccy %}
+              {% if mv %}{{ mv|floatformat:2|intcomma }}{% else %}<span style="color:#999">—</span>{% endif %}
+            {% endwith %}
+          </td>
         </tr>
-      {% empty %}
-        <tr><td colspan="2">No balances.</td></tr>
+      {% endfor %}
+      {% for ccy, mv_total in grand_mv_totals.items %}
+        {% if not grand_bal_totals.ccy %}
+          <tr>
+            <td>{{ ccy }}</td>
+            <td align="right"><span style="color:#999">—</span></td>
+            <td align="right">{{ mv_total|floatformat:2|intcomma }}</td>
+          </tr>
+        {% endif %}
       {% endfor %}
     </tbody>
   </table>
 
   <p style="color:#666; font-size:0.9rem; margin-top:0.75rem">
-    Note: balances are computed as the sum of each asset’s transactions and shown in the asset’s currency.
-    Cross-currency totals are displayed per currency (no FX conversion).
+    Market values are computed from the latest available quotes (no FX conversion).<br>
+    Metals use per-troy-ounce quotes converted to grams and adjusted by purity × weight.
   </p>
+
 {% else %}
   <p>No assets yet. <a href="{% url 'portfolio:asset_create_category' %}">Add your first asset</a>.</p>
 {% endif %}
 {% endblock %}
+

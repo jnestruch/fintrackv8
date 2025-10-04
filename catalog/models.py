@@ -1,16 +1,34 @@
 from django.db import models
 
+from django.db.models import Q
+
 class InstrumentKind(models.TextChoices):
     EQUITY = "EQUITY", "Equity"
     ETF    = "ETF", "ETF"
     CRYPTO = "CRYPTO", "Crypto"
+    COMMODITY = "COMMODITY", "Commodity"
     # extend later (BOND, FUND, OPTION, FUTURE, FX, ...)
 
 class Instrument(models.Model):
+    class Unit(models.TextChoices):
+        UNIT = "UNIT", "Unit"
+        SHARE = "SHARE", "Share"
+        COIN = "COIN", "Coin"
+        BARREL = "BARREL", "Barrel"
+        OUNCE = "OUNCE", "Ounce"
+        GRAM = "GRAM", "Gram"
+        KILOGRAM = "KILOGRAM", "Kilogram"
+        LITER = "LITER", "Liter"
+        BUSHEL = "BUSHEL", "Bushel"
+        POUND = "POUND", "Pound"
+
     kind = models.CharField(max_length=16, choices=InstrumentKind.choices)
     name = models.CharField(max_length=200)           # Apple Inc., Bitcoin, ...
     isin = models.CharField(max_length=12, blank=True) # International Securities Identification Number
     currency = models.CharField(max_length=3, blank=True) # ISO 4217 currency code, e.g., USD, EUR, BTC
+    unit = models.CharField(max_length=16,choices=Unit.choices,blank=True,
+        help_text="Unit for pricing/quantity (use codes like OUNCE, GRAM, SHARE, ...).",
+    )
     sector = models.CharField(max_length=64, blank=True) # Technology, Financial Services, ...
     active = models.BooleanField(default=True) 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -71,7 +89,7 @@ class PriceSource(models.Model):
         return self.code
 
 class Quote(models.Model):
-    instrument = models.ForeignKey(Instrument, on_delete=models.CASCADE)
+    instrument = models.ForeignKey(Instrument, null=True, blank=True, on_delete=models.CASCADE)
     listing = models.ForeignKey(Listing, null=True, blank=True, on_delete=models.CASCADE)
     token = models.ForeignKey(Token, null=True, blank=True, on_delete=models.CASCADE)
     source = models.ForeignKey(PriceSource, on_delete=models.PROTECT)
@@ -82,6 +100,19 @@ class Quote(models.Model):
     class Meta:
         indexes = [models.Index(fields=["instrument", "ts"]),
                    models.Index(fields=["listing", "ts"]),
-                   models.Index(fields=["token", "ts"])]
+                   models.Index(fields=["token", "ts"]),
+                   models.Index(fields=["source", "ts"]),
+                   ]
+        
+        constraints = [
+            models.CheckConstraint(
+                name="quote_exactly_one_target",
+                check=(
+                    (Q(instrument__isnull=False) & Q(listing__isnull=True) & Q(token__isnull=True)) |
+                    (Q(instrument__isnull=True)  & Q(listing__isnull=False) & Q(token__isnull=True)) |
+                    (Q(instrument__isnull=True)  & Q(listing__isnull=True)  & Q(token__isnull=False))
+                ),
+            ),
+        ]
         
         unique_together = [("source", "listing", "token", "ts")]

@@ -16,7 +16,7 @@
     <div class="navbar">
         <a href="{% url 'home' %}" class="navbar-brand">Home</a> |
         <a href="{% url 'about' %}" class="navbar-item">About</a> |
-        <a href="#" class="navbar-item">Dashboard</a>
+        <a href="{% url 'overview' %}" class="navbar-item">Dashboard</a>
         {% if user.is_authenticated %}
             <form id="logout-form" method="post" action="{% url 'logout' %}">
             {% csrf_token %}

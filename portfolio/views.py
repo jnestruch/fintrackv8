@@ -16,6 +16,8 @@ from django.db.models.functions import Coalesce
 from django.views.generic import TemplateView
 from .forms import TransactionForm
 from django.db.models import DecimalField
+from .services import market_value_for_asset
+
 
 # Helper mapping
 DETAIL_FORM_BY_CATEGORY = {
@@ -201,7 +203,9 @@ class PortfolioOverviewView(LoginRequiredMixin, TemplateView):
         return (
             Asset.objects
             .filter(account__owner=self.request.user)
-            .select_related("account", "type")
+            # .select_related("account", "type")
+            .select_related("account", "type", "investment", "investment__listing__exchange",
+                            "investment__token__network", "metal")
             .annotate(
                 balance=Coalesce(
                     Sum("transactions__amount"),
@@ -219,26 +223,74 @@ class PortfolioOverviewView(LoginRequiredMixin, TemplateView):
         # Build a list of accounts with their assets and per-account totals (by currency)
         accounts_view = []
         grand_totals = defaultdict(Decimal)
+        grand_bal_totals = defaultdict(Decimal)  # by asset currency (no FX)
+        grand_mv_totals = defaultdict(Decimal)   # by MV currency (no FX)
         grouped = OrderedDict()
 
-        for a in assets:
-            grouped.setdefault(a.account.name, []).append(a)
+        # for a in assets:
+        #     grouped.setdefault(a.account.name, []).append(a)
 
-        for acc_name, acc_assets in grouped.items():
-            totals_by_ccy = defaultdict(Decimal)
-            for a in acc_assets:
-                amt = a.balance or Decimal("0")
-                totals_by_ccy[a.currency] += amt
-                grand_totals[a.currency] += amt
+        # for acc_name, acc_assets in grouped.items():
+        #     totals_by_ccy = defaultdict(Decimal)
+        #     for a in acc_assets:
+        #         amt = a.balance or Decimal("0")
+        #         totals_by_ccy[a.currency] += amt
+        #         grand_totals[a.currency] += amt
+
+        #     accounts_view.append({
+        #         "name": acc_name,
+        #         "assets": acc_assets,
+        #         "totals": dict(sorted(totals_by_ccy.items())),
+        #     })
+
+        # Compute MV for each asset once (avoid repeated queries in template)
+        enriched = []
+        for a in assets:
+            mv, mv_ccy = market_value_for_asset(a)
+            enriched.append((a, mv, mv_ccy))
+
+        # Group by account
+        for a, mv, mv_ccy in enriched:
+            grouped.setdefault(a.account.name, []).append((a, mv, mv_ccy))
+
+        # Build per-account sections and totals
+        for acc_name, acc_rows in grouped.items():
+            totals_bal = defaultdict(Decimal)  # by asset currency
+            totals_mv = defaultdict(Decimal)   # by MV currency
+            # rows for template
+            rows = []
+            for a, mv, mv_ccy in acc_rows:
+                # Update balance totals
+                bal_ccy = a.currency
+                bal_amt = a.balance or Decimal("0")
+                totals_bal[bal_ccy] += bal_amt
+                grand_bal_totals[bal_ccy] += bal_amt
+
+                # Update MV totals
+                if mv is not None and mv_ccy:
+                    totals_mv[mv_ccy] += mv
+                    grand_mv_totals[mv_ccy] += mv
+
+                rows.append({
+                    "asset": a,
+                    "balance": bal_amt,
+                    "balance_currency": bal_ccy,
+                    "market_value": mv,
+                    "market_currency": mv_ccy,
+                })
 
             accounts_view.append({
                 "name": acc_name,
-                "assets": acc_assets,
-                "totals": dict(sorted(totals_by_ccy.items())),
+                "rows": rows,
+                "totals_balance": dict(sorted(totals_bal.items())),
+                "totals_market": dict(sorted(totals_mv.items())),
             })
+
 
         ctx.update({
             "accounts": accounts_view,                       # list of {name, assets, totals}
             "grand_totals": dict(sorted(grand_totals.items())),  # {ccy: total}
+            "grand_bal_totals": dict(sorted(grand_bal_totals.items())),
+            "grand_mv_totals": dict(sorted(grand_mv_totals.items())),
         })
         return ctx
